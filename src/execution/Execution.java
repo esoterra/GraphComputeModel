@@ -12,7 +12,10 @@ public class Execution<T> {
 
     private final NodeClassTable<T> classTable;
     private Set<T> opNodes;
+    private Set<T> literalNodes;
+    private Set<T> connectionsOfNodes;
     private Set<T> assignmentNodes;
+//    private
 
     private final Digraph<T> connections;
     private final Digraph<T> values;
@@ -24,22 +27,15 @@ public class Execution<T> {
         this.classTable = classTable;
         this.connections = connections;
         this.values = values;
-    }
-
-    private boolean initialized = false;
-
-    private void initialize() {
-        opNodes = getConnectionsFrom(classTable.nodeFor(NodeClass.OPERATION));
-        assignmentNodes = getConnectionsFrom(classTable.nodeFor(NodeClass.ASSIGNMENT));
 
         nextUpdateBuilder.addAll(getConnectionsFrom(classTable.nodeFor(NodeClass.LITERAL)));
     }
 
     public synchronized boolean executeStep() throws ExecutionException {
-        if(!initialized) {
-            initialize();
-            initialized = true;
-        }
+        opNodes = getConnectionsFrom(classTable.nodeFor(NodeClass.OPERATION));
+        literalNodes = getConnectionsFrom(classTable.nodeFor(NodeClass.LITERAL));
+        connectionsOfNodes = getConnectionsFrom(classTable.nodeFor(NodeClass.CONNECTIONS_OF));
+        assignmentNodes = getConnectionsFrom(classTable.nodeFor(NodeClass.ASSIGNMENT));
 
         Set<T> updateSet = nextUpdateBuilder.toSet();
         NodeClass currentNodeClass;
@@ -104,7 +100,10 @@ public class Execution<T> {
 //                }
 
                 if(updateConnectionsFrom(alteredNode, assignmentValues.toSet())) {
-                    nextUpdateBuilder.add(alteredNode);
+                    if(literalNodes.contains(alteredNode)) {
+                        nextUpdateBuilder.add(alteredNode);
+                    }
+                    nextUpdateBuilder.addAll(values.getReverse(alteredNode).intersect(connectionsOfNodes));
                 }
             }
         }
@@ -177,7 +176,6 @@ public class Execution<T> {
     }
 
     public synchronized Set<T> queryNode(T node) {
-//        return getValues(node);
         return getConnectionsFrom(node);
     }
 
@@ -210,7 +208,7 @@ public class Execution<T> {
      * @param newConnections the nodes new connections
      * @return whether the connection set changed
      */
-    protected boolean updateConnectionsFrom(T node, Set<T> newConnections) {
+    private boolean updateConnectionsFrom(T node, Set<T> newConnections) {
         return connections.update(node, newConnections);
     }
 
@@ -219,7 +217,7 @@ public class Execution<T> {
      * @param node the target node
      * @return the connection set of that node
      */
-    protected Set<T> getConnectionsFrom(T node) {
+    private Set<T> getConnectionsFrom(T node) {
         return connections.get(node);
     }
 
@@ -243,7 +241,7 @@ public class Execution<T> {
      * @param node the target node
      * @return the nodes that the target node appears in the connection set of
      */
-    protected Set<T> getConnectionsTo(T node) {
+    private Set<T> getConnectionsTo(T node) {
         return connections.getReverse(node);
     }
 

@@ -60,7 +60,7 @@ public class Digraph<T> {
      * @return change indicator
      */
     public synchronized boolean update(T node, Set<T> newConnections) {
-        Set<T> oldConnections = forwardConnections.get(node);
+        Set<T> oldConnections = get(node);
         forwardConnections.put(node, newConnections);
         boolean changed = false;
 

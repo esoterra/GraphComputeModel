@@ -1,7 +1,7 @@
 package execution;
 
 public class ExecutionException extends Exception {
-    public ExecutionException(String desc) {
+    ExecutionException(String desc) {
         super(desc);
     }
 

@@ -2,6 +2,10 @@ package execution;
 
 import static execution.NodeClass.*;
 
+/**
+ * An association between nodes and the NodeClass they represent
+ * @param <T>
+ */
 public class NodeClassTable<T> {
     private final T operation;
 
@@ -13,7 +17,7 @@ public class NodeClassTable<T> {
     private final T connectionsOf;
 
     public static NodeClassTable<String> getDefault() {
-        return new NodeClassTable<String>(
+        return new NodeClassTable<>(
                 "_Operations",
                 "_Union",
                 "_Intersect",
@@ -25,6 +29,17 @@ public class NodeClassTable<T> {
         );
     }
 
+    /**
+     *
+     * @param operation
+     * @param union
+     * @param intersect
+     * @param difference
+     * @param assignment
+     * @param assignmentValue
+     * @param literal
+     * @param connectionsOf
+     */
     public NodeClassTable(T operation, T union, T intersect, T difference, T assignment, T assignmentValue, T literal, T connectionsOf) {
         this.operation = operation;
         this.union = union;
@@ -35,6 +50,7 @@ public class NodeClassTable<T> {
         this.literal = literal;
         this.connectionsOf = connectionsOf;
     }
+
 
     public T nodeFor(NodeClass type) {
         switch (type) {

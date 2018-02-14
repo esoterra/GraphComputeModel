@@ -3,8 +3,6 @@ package execution;
 import sets.*;
 import execution.ExecutionException.*;
 
-import java.util.Map;
-
 public class Execution<T> {
     private static final boolean DEBUG = false;
 
@@ -15,7 +13,6 @@ public class Execution<T> {
     private Set<T> literalNodes;
     private Set<T> connectionsOfNodes;
     private Set<T> assignmentNodes;
-//    private
 
     private final Digraph<T> connections;
     private final Digraph<T> values;
@@ -44,6 +41,7 @@ public class Execution<T> {
         while(updateSet.hasContents()) {
             if(DEBUG) System.out.println("> Loop cycle " + count++ + "");
             nextUpdateBuilder.clear();
+            //TODO: Add queueing system to push updates to the value sets at the end of each substep
             for(T currentNode : updateSet) {
                 currentNodeClass = getNodeClass(currentNode);
 

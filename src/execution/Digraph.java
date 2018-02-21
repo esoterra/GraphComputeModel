@@ -60,7 +60,7 @@ public class Digraph<T> {
      * @return change indicator
      */
     public synchronized boolean update(T node, Set<T> newConnections) {
-        Set<T> oldConnections = get(node);
+        Set<T> oldConnections = get(node);              //Replaces null values with EmptySet
         forwardConnections.put(node, newConnections);
         boolean changed = false;
 
@@ -85,6 +85,34 @@ public class Digraph<T> {
         }
 
         return changed;
+    }
+
+    public synchronized SetBuilder<T> updateWithDiff(T node, Set<T> newConnections) {
+        Set<T> oldConnections = get(node);              //Replaces null values with EmptySet
+        forwardConnections.put(node, newConnections);
+
+        SetBuilder<T> output = new SetBuilder<>();
+        SetBuilder<T> temp;
+        for(T newConnection : newConnections) {
+            if(!oldConnections.contains(newConnection)) {
+                temp = backwardConnections.get(newConnection);
+                if(temp == null) {
+                    temp = new SetBuilder<>();
+                    backwardConnections.put(newConnection, temp);
+                }
+                temp.add(node);
+                output.add(node);
+            }
+        }
+
+        for(T oldConnection : oldConnections) {
+            if(!newConnections.contains(oldConnection)) {
+                backwardConnections.get(oldConnection).remove(node);
+                output.add(node);
+            }
+        }
+
+        return output;
     }
 
     /**

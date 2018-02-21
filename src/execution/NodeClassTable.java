@@ -4,6 +4,7 @@ import static execution.NodeClass.*;
 
 /**
  * An association between nodes and the NodeClass they represent
+ *
  * @param <T>
  */
 public class NodeClassTable<T> {
@@ -40,7 +41,7 @@ public class NodeClassTable<T> {
      * @param literal
      * @param connectionsOf
      */
-    public NodeClassTable(T operation, T union, T intersect, T difference, T assignment, T assignmentValue, T literal, T connectionsOf) {
+    private NodeClassTable(T operation, T union, T intersect, T difference, T assignment, T assignmentValue, T literal, T connectionsOf) {
         this.operation = operation;
         this.union = union;
         this.intersect = intersect;

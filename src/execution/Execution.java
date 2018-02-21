@@ -3,6 +3,15 @@ package execution;
 import sets.*;
 import execution.ExecutionException.*;
 
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+
+//TODO: Ensure nodes whose NodeClass have changed are queued for update
+//TODO: Queue connectionsOf operations for update that operate on modified nodes
+//TODO: Make value updates within a step parallel to ensure Determinism (WIP)
+//TODO: Handle multi-assignment case
+
 public class Execution<T> {
     private static final boolean DEBUG = false;
 
@@ -17,15 +26,16 @@ public class Execution<T> {
     private final Digraph<T> connections;
     private final Digraph<T> values;
 
-    private final SetBuilder<T> nextUpdateBuilder = new SetBuilder<>();
-    private SetBuilder<T> queuedAssignments = new SetBuilder<>();
+    private final SetBuilder<T> nextUpdate = new SetBuilder<>();
+    private final Map<T, Set<T>> valueChanges = new HashMap<>();
+    private final SetBuilder<T> nextAssignments = new SetBuilder<>();
 
     public Execution(NodeClassTable<T> classTable, Digraph<T> connections, Digraph<T> values) {
         this.classTable = classTable;
         this.connections = connections;
         this.values = values;
 
-        nextUpdateBuilder.addAll(getConnectionsFrom(classTable.nodeFor(NodeClass.LITERAL)));
+        nextUpdate.addAll(getConnectionsFrom(classTable.nodeFor(NodeClass.LITERAL)));
     }
 
     public synchronized boolean executeStep() throws ExecutionException {
@@ -34,24 +44,27 @@ public class Execution<T> {
         connectionsOfNodes = getConnectionsFrom(classTable.nodeFor(NodeClass.CONNECTIONS_OF));
         assignmentNodes = getConnectionsFrom(classTable.nodeFor(NodeClass.ASSIGNMENT));
 
-        Set<T> updateSet = nextUpdateBuilder.toSet();
-        NodeClass currentNodeClass;
+        Set<T> updateSet = nextUpdate.toSet();
+        nextUpdate.clear();
 
+        NodeClass currentNodeClass;
         int count = 0;
+
         while(updateSet.hasContents()) {
             if(DEBUG) System.out.println("> Loop cycle " + count++ + "");
-            nextUpdateBuilder.clear();
-            //TODO: Add queueing system to push updates to the value sets at the end of each substep
+            if(DEBUG) System.out.println();
+
+            //TODO: Add queueing system to push updates to the value sets at the end of each sub-step
             for(T currentNode : updateSet) {
                 currentNodeClass = getNodeClass(currentNode);
 
                 switch (currentNodeClass) {
                     case ASSIGNMENT:
-                        queuedAssignments.add(currentNode);
+                        nextAssignments.add(currentNode);
                         continue;
 
                     case ASSIGNMENT_VALUE:
-                        queuedAssignments.addAll(getConnectionsTo(currentNode).intersect(assignmentNodes));
+                        nextAssignments.addAll(getConnectionsTo(currentNode).intersect(assignmentNodes));
                         continue;
 
                     case OPERATION:
@@ -62,14 +75,23 @@ public class Execution<T> {
                         throw new InvalidOperation("Invalid Operation Type Evaluated");
                 }
 
-                if (updateValuesAt(currentNode, processNode(currentNode, currentNodeClass))) {
-                    nextUpdateBuilder.addAll(getConnectionsTo(currentNode));
-                }
+                valueChanges.put(currentNode, processNode(currentNode, currentNodeClass));
             }
 
-            updateSet = nextUpdateBuilder.toSet();
-            nextUpdateBuilder.clear();
-            if(DEBUG) System.out.println();
+            Iterator<Map.Entry<T,Set<T>>> it = valueChanges.entrySet().iterator();
+            Map.Entry<T,Set<T>> entry;
+
+            while(it.hasNext()) {
+                entry = it.next();
+                if (updateValuesAt(entry.getKey(), entry.getValue())) {
+                    nextUpdate.addAll(getConnectionsTo(entry.getKey()));
+                }
+                it.remove();
+            }
+
+            updateSet = nextUpdate.toSet();
+            nextUpdate.clear();
+
         }
 
         //*** Process the Queued Assignments ***
@@ -77,7 +99,7 @@ public class Execution<T> {
         SetBuilder<T> assignmentValues;
         SetBuilder<T> alteredNodes;
 
-        for(T currentAssignment : queuedAssignments.toSet()) {
+        for(T currentAssignment : nextAssignments.toSet()) {
             inputNodes = getConnectionsFrom(currentAssignment);
             assignmentValues = new SetBuilder<>();
             alteredNodes = new SetBuilder<>();
@@ -93,20 +115,16 @@ public class Execution<T> {
             if(DEBUG) System.out.println("Assign: " + alteredNodes.toSet() + " = " + assignmentValues.toSet());
 
             for(T alteredNode : alteredNodes.toSet()) {
-//                if (nextUpdateBuilder.contains(alteredNode)) {
-//                    throw new ExecutionException.NonDeterministicExecution();
-//                }
-
                 if(updateConnectionsFrom(alteredNode, assignmentValues.toSet())) {
                     if(literalNodes.contains(alteredNode)) {
-                        nextUpdateBuilder.add(alteredNode);
+                        nextUpdate.add(alteredNode);
                     }
-                    nextUpdateBuilder.addAll(values.getReverse(alteredNode).intersect(connectionsOfNodes));
+                    nextUpdate.addAll(values.getReverse(alteredNode).intersect(connectionsOfNodes));
                 }
             }
         }
-        queuedAssignments.clear();
-        return nextUpdateBuilder.size() != 0;
+        nextAssignments.clear();
+        return nextUpdate.size() != 0;
     }
 
     /**

@@ -4,7 +4,16 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
+/**
+ * An immutable unordered collection with no repetition
+ * @param <T> The type of the elements of the set
+ */
 public abstract class Set<T>  implements Iterable<T>, Comparable<Set<T>> {
+    /**
+     *
+     * @param other
+     * @return
+     */
     public abstract Set<T> union(Set<T> other);
     public abstract Set<T> intersect(Set<T> other);
     public abstract Set<T> difference(Set<T> other);

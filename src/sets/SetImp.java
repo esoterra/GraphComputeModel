@@ -107,8 +107,8 @@ public class SetImp<T> extends Set<T> {
         return true;
     }
 
-    //TODO verify hashcode works
-    public int hashcode() {
+    @Override
+    public int hashCode() {
         return contents.hashCode();
     }
 }

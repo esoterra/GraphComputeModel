@@ -7,6 +7,12 @@ public class SetBuilder<T> {
     private HashSet<T> contents = new HashSet<>();
     private Set<T> lastSet = null;
 
+    public static <U> SetBuilder<U> fromSet(Set<U> values) {
+        SetBuilder<U> output = new SetBuilder<>();
+        output.addAll(values);
+        return output;
+    }
+
     public synchronized boolean contains(T element) {
         return contents.contains(element);
     }
